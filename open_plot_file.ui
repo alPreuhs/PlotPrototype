@@ -31,7 +31,7 @@
   <property name="windowTitle">
    <string>Dialog</string>
   </property>
-  <widget class="QWidget" name="">
+  <widget class="QWidget" name="layoutWidget">
    <property name="geometry">
     <rect>
      <x>50</x>
@@ -102,7 +102,7 @@
       <property name="orientation">
        <enum>Qt::Horizontal</enum>
       </property>
-      <widget class="QPushButton" name="show_bt">
+      <widget class="QPushButton" name="ok_bt">
        <property name="minimumSize">
         <size>
          <width>158</width>
@@ -116,7 +116,7 @@
         </size>
        </property>
        <property name="text">
-        <string>Show Plot</string>
+        <string>Ok</string>
        </property>
       </widget>
       <widget class="QPushButton" name="cancel_bt">
