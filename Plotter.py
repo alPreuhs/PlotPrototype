@@ -53,7 +53,10 @@ class Plotter(Ui_Dialog):
 
 
 linestyles = ['-', '--', ':']
+colorcodes = ['#ca0020', '#f4a582', '#92c5de', '#0571b0', '#ca0020', '#f4a582', '#92c5de', '#0571b0']
 
+
+# TODO some fonts aren't compatible
 
 class PlotEditor(Ui_PlotEditor):
 
@@ -72,10 +75,14 @@ class PlotEditor(Ui_PlotEditor):
         self.ylbl = self.vertical_label_le.text()
         self.linestyle = '-'
         self.params = {}
+        self.style = 'normal'
+        self.weight = 'normal'
+
+        self.kursive_pb.setCheckable(True)
+        self.fat_pb.setCheckable(True)
 
     def connect_buttons(self):
         self.show_plot_bt.clicked.connect(self.on_show_plot_bt_clicked)
-        # print(self.font_size_sb.lineEdit())
         self.font_size_sb.lineEdit().returnPressed.connect(self.on_font_size_changed)
 
     def on_font_size_changed(self):
@@ -86,20 +93,23 @@ class PlotEditor(Ui_PlotEditor):
             msg = QtWidgets.QMessageBox()
             msg.setText(self.font_size_sb.currentText() + " is an invalid index.")
             msg.exec_()
-            # self.font_size_sb.setCurrentText(self.font_size)
 
     def set_up_plot(self):
         self.xlbl = self.horizontal_label_le.text()
         self.ylbl = self.vertical_label_le.text()
         self.linestyle = linestyles[self.linestyle_cb.currentIndex()]
-        print()
 
         self.on_font_size_changed()
 
-        # self.font = self.font_sb.currentFont()
-        # self.font.setBold(True)
-        self.params = {'font.size': self.font_size}
-        # 'font.family': "12"}
+        self.font = self.font_sb.currentFont()
+        self.font.setBold(True)
+        self.style = 'italic' if (self.kursive_pb.isChecked()) else self.style
+        self.weight = 'bold' if (self.fat_pb.isChecked()) else self.weight
+
+        self.params = {'font.size': self.font_size,
+                       'font.family': self.font.family(),
+                       'font.style': self.style,
+                       'font.weight': self.weight}
 
     def on_show_plot_bt_clicked(self):
         self.set_up_plot()
@@ -109,7 +119,7 @@ class PlotEditor(Ui_PlotEditor):
         plt.xlabel(self.xlbl)
         plt.ylabel(self.ylbl)
 
-        plt.plot(self.plot_data[1, :], self.plot_data[0, :], linestyle=self.linestyle)
+        plt.plot(self.plot_data[1, :], self.plot_data[0, :], color='red', linestyle=self.linestyle)
         plt.show()
 
 
