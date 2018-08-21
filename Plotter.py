@@ -11,7 +11,13 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from open_plot_file import Ui_Dialog
 from ploteditorgui import Ui_PlotEditor
 from copy import deepcopy
+import pyqtgraph as pg
 
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
+
+
+# changes made from 08.08.2018 15:50 might be unuseful
 
 class Plotter(Ui_Dialog):
     def __init__(self, Dialog):
@@ -67,10 +73,9 @@ class PlotEditor(Ui_PlotEditor):
 
         self.first = True
         self.plot_data = plot_data
-        # self.init_parameters()
         self.connect_buttons()
 
-    def init_parameters(self):
+    def pameters(self):
         self.font_size = float(self.font_size_sb.currentText())
         self.font = self.font_sb.currentFont()
         self.legend_font_size = float(self.legend_font_size_sb.currentText())
@@ -96,8 +101,14 @@ class PlotEditor(Ui_PlotEditor):
         self.legend_fat_pb.setCheckable(True)
         self.legend_kursive_pb.setCheckable(True)
 
-        self.fig = plt.figure()
-        self.ax = self.fig.add_subplot(111)
+        # might go back to these
+        # self.fig = plt.figure()
+        # self.ax = self.fig.add_subplot(111)
+        # self.canvas = self.fig.canvas
+
+        self.fig = Figure()
+        self.ax = self.fig.gca()
+        self.canvas = FigureCanvas(self.fig)
 
         if (self.first == True):
             self.ref_fig_size = self.fig.get_size_inches()
@@ -131,11 +142,9 @@ class PlotEditor(Ui_PlotEditor):
         self.figure_size_slider.valueChanged.connect(self.on_fig_size_changed)
 
     def show_plot(self):
-
         self.ax.clear()
-
-        self.set_up_plot()
-        plt.rcParams.update(self.params)
+        #self.set_up_plot()
+        #plt.rcParams.update(self.params)
 
         self.ax.plot(self.plot_data[1, :], self.plot_data[0, :], color=self.linecolor,
                      linestyle=self.linestyle, label=self.label)
@@ -150,8 +159,12 @@ class PlotEditor(Ui_PlotEditor):
                       'weight': self.legend_weight},
                 loc=self.legend_pos)
 
-        self.fig.canvas.draw()
-        self.fig.canvas.flush_events()
+        scene = QtGui.QGraphicsScene()
+        scene.addWidget(self.canvas)
+        self.PlotView.setScene(scene)
+
+        # self.fig.canvas.draw()
+        # self.fig.canvas.flush_events()
 
     def set_up_plot(self):
         self.xlbl = self.horizontal_label_le.text()
@@ -165,6 +178,7 @@ class PlotEditor(Ui_PlotEditor):
         self.legend_color = self.legend_color_cb.currentText()
         self.legend_facecolor = self.legend_facecolor_cb.currentText()
         self.legend_pos = self.legend_pos_cb.currentIndex()
+
         self.on_font_size_changed()
         self.on_line_width_changed()
         self.on_legend_font_size_changed()
@@ -237,16 +251,16 @@ def main():
     app = QtWidgets.QApplication(sys.argv)
 
     plt.ion()
-    Dialog = Window()
-    prog = Plotter(Dialog)
-    Dialog.show()
+    # Dialog = Window()
+    # prog = Plotter(Dialog)
+    # Dialog.show()
 
-    # plot_data = plt.plot
-    # path = os.path.abspath('C:/Users/Christopher/OneDrive/Studium/Hiwi/GUI/Plot/PlotPrototype/examples/a.plot')
-    # plot_data = readWrite.read_plot_data(path)
-    # plot_editor_window = Window()
-    # plot_editor = PlotEditor(plot_editor_window, plot_data)
-    # plot_editor_window.show()
+    plot_data = plt.plot
+    path = os.path.abspath('C:/Users/Christopher/OneDrive/Studium/Hiwi/GUI/Plot/PlotPrototype/examples/a.plot')
+    plot_data = readWrite.read_plot_data(path)
+    plot_editor_window = Window()
+    plot_editor = PlotEditor(plot_editor_window, plot_data)
+    plot_editor_window.show()
 
     sys.exit(app.exec_())
 
