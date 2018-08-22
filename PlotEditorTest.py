@@ -206,15 +206,17 @@ class PlotEditor(Ui_PlotEditor):
 
         width_pixels, height_pixels, xfak, yfak = self.compute_widht_height_pixels()
         scene = QtGui.QGraphicsScene()
+
+        self.fig.tight_layout()
         canvas = FigureCanvas(self.fig)
-        canvas.resize(width_pixels, height_pixels)
         scene.addWidget(canvas)
 
-        self.PlotView.setFixedSize(width_pixels + 2, height_pixels + 2)
-        self.PlotView.setSceneRect(0, 0, width_pixels, height_pixels)
-        self.PlotView.fitInView(0, 0, width_pixels, height_pixels, True)
+        self.PlotView.setFixedSize(canvas.get_width_height()[0] + 2, canvas.get_width_height()[1] + 2)
+        self.PlotView.setSceneRect(0, 0, canvas.get_width_height()[0], canvas.get_width_height()[1])
+        self.PlotView.fitInView(0, 0, canvas.get_width_height()[0], canvas.get_width_height()[1])
         self.PlotView.setScene(scene)
 
+    # probably won't need this one
     def compute_widht_height_pixels(self):
         width_inches, height_inches = self.fig.get_size_inches()
         dpi = self.fig.dpi
@@ -236,12 +238,12 @@ class PlotEditor(Ui_PlotEditor):
             height_pixels += self.ptToPx(self.title_pad, dpi)
             yfak -= (self.ptToPx(self.title_font_size, dpi) + self.ptToPx(self.title_pad, dpi))
 
-        print(width_pixels)
-        print(height_pixels)
+        # print(width_pixels)
+        # print(height_pixels)
         return width_pixels, height_pixels, xfak, yfak
 
     def ptToPx(self, pt, dpi):
-        return pt * 4 / 3  # / 72 * dpi
+        return pt * 4 / 3  # 72 * dpi
         # 16 pixels == 12 font points
 
 
