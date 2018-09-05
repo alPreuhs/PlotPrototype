@@ -6,27 +6,236 @@ import seaborn as sns
 import os
 import sys
 import readWrite
+import copy
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-from open_plot_file import Ui_Dialog
 from ploteditorgui import Ui_PlotEditor
-from copy import deepcopy
-import pyqtgraph as pg
-
+from open_plot_file import Ui_Dialog
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt4agg import FigureCanvasQTAgg as FigureCanvas
+import pyqtgraph as pg
+
+linestyles = ['-', '--', ':']
+colorcodes = ['#ca0020', '#f4a582', '#92c5de', '#0571b0', '#ca0020', '#f4a582', '#92c5de', '#0571b0']
 
 
-# changes made from 08.08.2018 15:50 might be unuseful
+# TODO save button
+# TODO font and color
+# TODO enable zoom
+# TODO more plots in one image
+
+class PlotEditor(Ui_PlotEditor):
+
+    def __init__(self, PlotEditor, plot_data):
+        self.PlotEditor = PlotEditor
+        self.PlotEditor_copy = PlotEditor
+        Ui_PlotEditor.__init__(self)
+        self.setupUi(self.PlotEditor)
+        self.plot_data = plot_data
+
+        self.counter = 0
+        self.connect_buttons()
+        self.assign_parameters()
+        self.update_plot()
+
+    def connect_buttons(self):
+        self.reset_bt.clicked.connect(self.reset)
+
+        self.x_label_le.editingFinished.connect(self.update_plot)
+        self.y_label_le.editingFinished.connect(self.update_plot)
+        self.xy_font_cb.currentFontChanged.connect(self.update_plot)
+        self.xy_font_size_cb.currentIndexChanged.connect(self.update_plot)
+        self.xy_color_cb.currentIndexChanged.connect(self.update_plot)
+        self.xy_kursive_pb.clicked.connect(self.update_plot)
+        self.xy_fat_pb.clicked.connect(self.update_plot)
+        self.labelpad_sb.valueChanged.connect(self.update_plot)
+
+        self.linestyle_cb.currentIndexChanged.connect(self.update_plot)
+        self.linewidth_cb.currentIndexChanged.connect(self.update_plot)
+        self.line_color_cb.currentIndexChanged.connect(self.update_plot)
+
+        self.facecolor_cb.currentIndexChanged.connect(self.update_plot)
+        self.background_color_cb.currentIndexChanged.connect(self.update_plot)
+        self.edgecolor_cb.currentIndexChanged.connect(self.update_plot)
+        self.edge_linewidth_cb.currentIndexChanged.connect(self.update_plot)
+        self.figure_size_slider.sliderReleased.connect(self.update_plot)
+
+        self.label_le.editingFinished.connect(self.update_plot)
+        self.legend_font_sb.currentFontChanged.connect(self.update_plot)
+        self.legend_color_cb.currentIndexChanged.connect(self.update_plot)
+        self.legend_fat_pb.clicked.connect(self.update_plot)
+        self.legend_kursive_pb.clicked.connect(self.update_plot)
+        self.legend_font_size_sb.currentIndexChanged.connect(self.update_plot)
+        self.legend_pos_cb.currentIndexChanged.connect(self.update_plot)
+        self.legend_facecolor_cb.currentIndexChanged.connect(self.update_plot)
+        self.legend_edgecolor_cb.currentIndexChanged.connect(self.update_plot)
+
+        self.title_le.editingFinished.connect(self.update_plot)
+        self.title_font_cb.currentIndexChanged.connect(self.update_plot)
+        self.title_color_cb.currentIndexChanged.connect(self.update_plot)
+        self.title_kursive_pb.clicked.connect(self.update_plot)
+        self.title_fat_pb.clicked.connect(self.update_plot)
+        self.title_font_size_cb.currentIndexChanged.connect(self.update_plot)
+        self.horizontal_ali_cb.currentIndexChanged.connect(self.update_plot)
+        self.title_pad_sb.valueChanged.connect(self.update_plot)
+
+        self.xy_kursive_pb.setCheckable(True)
+        self.xy_fat_pb.setCheckable(True)
+        self.title_kursive_pb.setCheckable(True)
+        self.title_fat_pb.setCheckable(True)
+        self.legend_fat_pb.setCheckable(True)
+        self.legend_kursive_pb.setCheckable(True)
+
+    def get_default_values(self):
+        pass
+
+    def reset(self):
+        self.title_fat_pb.setChecked(False)
+        self.legend_fat_pb.setChecked(False)
+        self.xy_fat_pb.setChecked(False)
+        self.title_kursive_pb.setChecked(False)
+        self.legend_kursive_pb.setChecked(False)
+        self.xy_kursive_pb.setChecked(False)
+
+        self.x_label_le.clear()
+        self.y_label_le.clear()
+        self.label_le.clear()
+        self.title_le.clear()
+
+        self.title_font_size_cb.setCurrentIndex(0)
+        self.legend_font_size_sb.setCurrentIndex(0)
+        self.xy_font_size_cb.setCurrentIndex(0)
+        self.linewidth_cb.setCurrentIndex(0)
+        self.edge_linewidth_cb.setCurrentIndex(0)
+        self.title_pad_sb.setValue(0)
+        self.labelpad_sb.setValue(0)
+
+        self.xy_color_cb.setCurrentIndex(0)
+        self.line_color_cb.setCurrentIndex(0)
+        self.facecolor_cb.setCurrentIndex(1)
+        self.background_color_cb.setCurrentIndex(1)
+        self.edgecolor_cb.setCurrentIndex(1)
+        self.legend_color_cb.setCurrentIndex(0)
+        self.legend_facecolor_cb.setCurrentIndex(1)
+        self.legend_edgecolor_cb.setCurrentIndex(1)
+        self.title_color_cb.setCurrentIndex(0)
+
+        self.figure_size_slider.setValue(0)
+
+        self.assign_parameters()
+        self.update_plot()
+
+    def assign_parameters(self):
+        # x- and y-labeling
+        self.xlbl = self.x_label_le.text()
+        self.ylbl = self.y_label_le.text()
+        self.xy_font_size = float(self.xy_font_size_cb.currentText())
+        self.xy_font = self.xy_font_cb.currentFont()
+        self.xy_color = self.xy_color_cb.currentText()
+        self.xy_style = 'italic' if (self.xy_kursive_pb.isChecked()) else 'normal'
+        self.xy_weight = 'bold' if (self.xy_fat_pb.isChecked()) else 'normal'
+        self.xy_labelpad = (self.labelpad_sb.value())
+
+        # title parameters
+        self.title = self.title_le.text()
+        self.title_font_size = float(self.title_font_size_cb.currentText())
+        self.title_font = self.title_font_cb.currentFont()
+        self.title_color = self.title_color_cb.currentText()
+        self.title_style = 'italic' if (self.title_kursive_pb.isChecked()) else 'normal'
+        self.title_weight = 'bold' if (self.title_fat_pb.isChecked()) else 'normal'
+        self.title_pad = (self.title_pad_sb.value())
+        self.title_horizontal_ali = self.horizontal_ali_cb.currentText()
+
+        # figure colors
+        self.facecolor = self.facecolor_cb.currentText()
+        self.edgecolor = self.edgecolor_cb.currentText()
+        self.background_color = self.background_color_cb.currentText()
+        self.edge_linewidth = float(self.edge_linewidth_cb.currentText())
+
+        # line parameters
+        self.linestyle = linestyles[self.linestyle_cb.currentIndex()]
+        self.linecolor = self.line_color_cb.currentText()
+        self.lineswidth = float(self.linewidth_cb.currentText())
+
+        # legend parameters
+        self.label = self.label_le.text()
+        self.legend_font_size = float(self.legend_font_size_sb.currentText())
+        self.legend_font = self.legend_font_sb.currentFont()
+        self.legend_color = self.legend_color_cb.currentText()
+        self.legend_weight = 'bold' if (self.legend_fat_pb.isChecked()) else 'normal'
+        self.legend_style = 'italic' if (self.legend_kursive_pb.isChecked()) else 'normal'
+        self.legend_pos = self.legend_pos_cb.currentIndex()
+        self.legend_facecolor = self.legend_facecolor_cb.currentText()
+        self.legend_edgecolor = self.legend_edgecolor_cb.currentText()
+
+        # set up figure
+        self.ref_fig_size = Figure().get_size_inches() if (self.counter == 0) else self.ref_fig_size
+        self.max_height = (self.PlotView.maximumHeight() / Figure().dpi) if (self.counter == 0) else self.max_height
+        step_size = (self.max_height - self.ref_fig_size[1]) / 9999
+
+        self.figure_size_fac = (self.ref_fig_size[1] + step_size * self.figure_size_slider.value()) / self.ref_fig_size[
+            1]
+        size_inches = (self.ref_fig_size[0] * self.figure_size_fac,
+                       self.ref_fig_size[1] * self.figure_size_fac)
+        self.fig = Figure(facecolor=self.facecolor, edgecolor=self.edgecolor,
+                          linewidth=self.edge_linewidth, figsize=size_inches)
+        self.counter += 1
+
+    def update_plot(self):
+        self.assign_parameters()
+        ax = self.fig.gca(facecolor=self.background_color)
+        ax.clear()
+        ax.plot(self.plot_data[1, :],
+                self.plot_data[0, :], color=self.linecolor, linestyle=self.linestyle, label=self.label,
+                linewidth=self.lineswidth)
+
+        # Set Legend
+        if (len(self.label) > 0):
+            legend = ax.legend(
+                prop={'size': self.legend_font_size, 'family': self.legend_font.family(), 'style': self.legend_style,
+                      'weight': self.legend_weight}, facecolor=self.legend_facecolor, edgecolor=self.legend_edgecolor,
+                loc=self.legend_pos)
+            for text in legend.get_texts():
+                text.set_color(self.legend_color)
+
+        # Set title
+        ax.set_title(self.title, size=self.title_font_size, family=self.title_font.family(),
+                     style=self.title_style, weight=self.title_weight, color=self.title_color,
+                     loc=self.title_horizontal_ali, y=1 + (self.title_pad / 100))
+
+        # Set x- and y-labeling
+        ax.set_xlabel(self.xlbl, labelpad=self.xy_labelpad, size=self.xy_font_size, family=self.xy_font.family(),
+                      style=self.xy_style, weight=self.xy_weight, color=self.xy_color)
+        ax.set_ylabel(self.ylbl, labelpad=self.xy_labelpad, size=self.xy_font_size, family=self.xy_font.family(),
+                      style=self.xy_style, weight=self.xy_weight, color=self.xy_color)
+
+        scene = QtGui.QGraphicsScene()
+
+        self.fig.tight_layout()
+        canvas = FigureCanvas(self.fig)
+        scene.addWidget(canvas)
+
+        self.PlotView.setFixedSize(canvas.get_width_height()[0] + 2, canvas.get_width_height()[1] + 2)
+        self.PlotView.setSceneRect(0, 0, canvas.get_width_height()[0], canvas.get_width_height()[1])
+        self.PlotView.fitInView(0, 0, canvas.get_width_height()[0], canvas.get_width_height()[1])
+        self.PlotView.setScene(scene)
+
+        width = self.PlotEditor.minimumWidth() + canvas.get_width_height()[0]
+        dialog_width = width if (width > 880) else 880
+        self.PlotEditor.resize(dialog_width, self.PlotEditor.geometry().height())
+
+        # min 550 - 880
+
+    def ptToPx(self, pt, dpi):
+        return pt * 4 / 3  # 72 * dpi
+        # 16 pixels == 12 font points
+
 
 class Plotter(Ui_Dialog):
     def __init__(self, Dialog):
         self.Dialog = Dialog
         Ui_Dialog.__init__(self)
         self.setupUi(self.Dialog)
-
-        # self.plot_editor_window = Window()
-        # self.plot_editor = PlotEditor(self.plot_editor_window, self.plot_data)
 
         self.connect_buttons()
         self.plot_data = plt.plot
@@ -43,6 +252,7 @@ class Plotter(Ui_Dialog):
 
     def on_open_plot_button_clicked(self):
         self.plot_file = QtWidgets.QFileDialog.getOpenFileName(None, "Open Plot File", '.', ("*.plot"))
+
         self.path = os.path.abspath(self.plot_file[0])
         self.file_edit.setText(self.path)  # os.path.basename(r"" + self.path + ""))
 
@@ -58,190 +268,6 @@ class Plotter(Ui_Dialog):
         plot_editor_window.show()
 
 
-linestyles = ['-', '--', ':']
-colorcodes = ['#ca0020', '#f4a582', '#92c5de', '#0571b0', '#ca0020', '#f4a582', '#92c5de', '#0571b0']
-
-
-# TODO some fonts aren't compatible
-
-class PlotEditor(Ui_PlotEditor):
-
-    def __init__(self, PlotEditor, plot_data):
-        self.PlotEditor = PlotEditor
-        Ui_PlotEditor.__init__(self)
-        self.setupUi(self.PlotEditor)
-
-        self.first = True
-        self.plot_data = plot_data
-        self.connect_buttons()
-
-    def pameters(self):
-        self.font_size = float(self.font_size_sb.currentText())
-        self.font = self.font_sb.currentFont()
-        self.legend_font_size = float(self.legend_font_size_sb.currentText())
-        self.legend_font = self.legend_font_sb.currentFont()
-        self.axes_label_color = self.axes_label_color_cb.currentText()
-        self.legend_color = self.legend_color_cb.currentText()
-        self.xlbl = self.horizontal_label_le.text()
-        self.ylbl = self.vertical_label_le.text()
-        self.label = self.label_le.text()
-        self.linestyle = '-'
-        self.params = {}
-        self.style = 'normal'
-        self.weight = 'normal'
-        self.lineswidth = float(self.linewidth_cb.currentText())
-        self.linecolor = self.line_color_cb.currentText()
-        self.background_color = self.background_color_cb.currentText()
-        self.legend_pos = self.legend_pos_cb.currentIndex()
-        self.legend_facecolor = self.legend_facecolor_cb.currentText()
-        self.legend_style = 'normal'
-        self.legend_weight = 'normal'
-        self.kursive_pb.setCheckable(True)
-        self.fat_pb.setCheckable(True)
-        self.legend_fat_pb.setCheckable(True)
-        self.legend_kursive_pb.setCheckable(True)
-
-        # might go back to these
-        # self.fig = plt.figure()
-        # self.ax = self.fig.add_subplot(111)
-        # self.canvas = self.fig.canvas
-
-        self.fig = Figure()
-        self.ax = self.fig.gca()
-        self.canvas = FigureCanvas(self.fig)
-
-        if (self.first == True):
-            self.ref_fig_size = self.fig.get_size_inches()
-        else:
-            self.ref_fig_size = self.ref_fig_size
-
-        self.fig.canvas.mpl_connect('close_event', self.handle_close)
-        self.first = False
-
-    def handle_close(self, evt):
-        self.show_plot_bt.setVisible(True)
-        self.show_plot_bt.setText("Show Plot")
-
-    def show_update_plot(self):
-        if plt.get_fignums():
-            self.show_plot()
-        else:
-            self.init_parameters()
-            self.show_plot_bt.setText("Update Plot")
-            self.show_plot()
-
-    def connect_buttons(self):
-        self.show_plot_bt.clicked.connect(self.show_update_plot)
-        self.font_size_sb.lineEdit().returnPressed.connect(self.on_font_size_changed)
-        self.legend_font_size_sb.lineEdit().returnPressed.connect(self.on_legend_font_size_changed)
-        self.linewidth_cb.lineEdit().returnPressed.connect(self.on_line_width_changed)
-
-        self.label_le.textChanged.connect(self.on_label_changed)
-        self.horizontal_label_le.textChanged.connect(self.on_xlabel_changed)
-        self.vertical_label_le.textChanged.connect(self.on_ylabel_changed)
-        self.figure_size_slider.valueChanged.connect(self.on_fig_size_changed)
-
-    def show_plot(self):
-        self.ax.clear()
-        #self.set_up_plot()
-        #plt.rcParams.update(self.params)
-
-        self.ax.plot(self.plot_data[1, :], self.plot_data[0, :], color=self.linecolor,
-                     linestyle=self.linestyle, label=self.label)
-
-        # set axes labels
-        plt.xlabel(self.xlbl)
-        plt.ylabel(self.ylbl)
-
-        if (len(self.label) > 0):
-            plt.legend(
-                prop={'size': self.legend_font_size, 'family': self.legend_font.family(), 'style': self.legend_style,
-                      'weight': self.legend_weight},
-                loc=self.legend_pos)
-
-        scene = QtGui.QGraphicsScene()
-        scene.addWidget(self.canvas)
-        self.PlotView.setScene(scene)
-
-        # self.fig.canvas.draw()
-        # self.fig.canvas.flush_events()
-
-    def set_up_plot(self):
-        self.xlbl = self.horizontal_label_le.text()
-        self.ylbl = self.vertical_label_le.text()
-        self.label = self.label_le.text()
-
-        self.linestyle = linestyles[self.linestyle_cb.currentIndex()]
-        self.axes_label_color = self.axes_label_color_cb.currentText()
-        self.linecolor = self.line_color_cb.currentText()
-        self.background_color = self.background_color_cb.currentText()
-        self.legend_color = self.legend_color_cb.currentText()
-        self.legend_facecolor = self.legend_facecolor_cb.currentText()
-        self.legend_pos = self.legend_pos_cb.currentIndex()
-
-        self.on_font_size_changed()
-        self.on_line_width_changed()
-        self.on_legend_font_size_changed()
-
-        self.style = 'italic' if (self.kursive_pb.isChecked()) else 'normal'
-        self.weight = 'bold' if (self.fat_pb.isChecked()) else 'normal'
-        self.legend_style = 'italic' if (self.legend_kursive_pb.isChecked()) else 'normal'
-        self.legend_weight = 'bold' if (self.legend_fat_pb.isChecked()) else 'normal'
-
-        self.fig_size = self.ref_fig_size * (self.figure_size_slider.value() / 500)
-        self.fig.set_size_inches(self.fig_size[0], self.fig_size[1])
-
-        self.params = {'font.size': self.font_size,
-                       'font.family': self.font.family(),
-                       'font.style': self.style,
-                       'font.weight': self.weight,
-                       'lines.linewidth': self.lineswidth,
-                       'axes.facecolor': self.background_color,
-                       'axes.labelcolor': self.axes_label_color,
-                       'text.color': self.legend_color,
-                       'legend.facecolor': self.legend_facecolor}
-
-    def on_font_size_changed(self):
-        try:
-            self.font_size = float(self.font_size_sb.currentText())
-        except ValueError:
-            msg = QtWidgets.QMessageBox()
-            msg.setText(self.font_size_sb.currentText() + " is an invalid index.")
-            msg.exec_()
-
-    def on_legend_font_size_changed(self):
-        try:
-            self.legend_font_size = float(self.legend_font_size_sb.currentText())
-        except ValueError:
-            msg = QtWidgets.QMessageBox()
-            msg.setText(self.legend_font_size_sb.currentText() + " is an invalid index.")
-            msg.exec_()
-
-    def on_xlabel_changed(self):
-        self.xlbl = self.horizontal_label_le.text()
-        self.show_plot()
-
-    def on_ylabel_changed(self):
-        self.ylbl = self.vertical_label_le.text()
-        self.show_plot()
-
-    def on_label_changed(self):
-        self.label = self.label_le.text()
-        self.show_plot()
-
-    def on_fig_size_changed(self):
-        self.fig_size = self.ref_fig_size * (self.figure_size_slider.value() / 500)
-        self.show_plot()
-
-    def on_line_width_changed(self):
-        try:
-            self.lineswidth = float(self.linewidth_cb.currentText())
-        except ValueError:
-            msg = QtWidgets.QMessageBox()
-            msg.setText(self.linewidth_cb.currentText() + " is an invalid index.")
-            msg.exec_()
-
-
 class Window(QtWidgets.QMainWindow):
     def __init__(self, parent=None):
         super(Window, self).__init__(parent=parent)
@@ -251,16 +277,16 @@ def main():
     app = QtWidgets.QApplication(sys.argv)
 
     plt.ion()
-    # Dialog = Window()
-    # prog = Plotter(Dialog)
-    # Dialog.show()
+    Dialog = Window()
+    prog = Plotter(Dialog)
+    Dialog.show()
 
-    plot_data = plt.plot
-    path = os.path.abspath('C:/Users/Christopher/OneDrive/Studium/Hiwi/GUI/Plot/PlotPrototype/examples/a.plot')
-    plot_data = readWrite.read_plot_data(path)
-    plot_editor_window = Window()
-    plot_editor = PlotEditor(plot_editor_window, plot_data)
-    plot_editor_window.show()
+    # plot_data = plt.plot
+    # path = os.path.abspath('C:/Users/Christopher/OneDrive/Studium/Hiwi/GUI/Plot/PlotPrototype/examples/a.plot')
+    # plot_data = readWrite.read_plot_data(path)
+    # plot_editor_window = Window()
+    # plot_editor = PlotEditor(plot_editor_window, plot_data)
+    # plot_editor_window.show()
 
     sys.exit(app.exec_())
 
