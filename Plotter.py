@@ -5,6 +5,10 @@ import numpy as np
 import seaborn as sns
 import os
 import sys
+
+from PyQt5.QtGui import QPixmap, QPainter
+from PyQt5.QtCore import QRectF, QRect, QDir
+
 import readWrite
 import copy
 
@@ -28,7 +32,6 @@ class PlotEditor(Ui_PlotEditor):
 
     def __init__(self, PlotEditor, plot_data):
         self.PlotEditor = PlotEditor
-        self.PlotEditor_copy = PlotEditor
         Ui_PlotEditor.__init__(self)
         self.setupUi(self.PlotEditor)
         self.plot_data = plot_data
@@ -40,6 +43,7 @@ class PlotEditor(Ui_PlotEditor):
 
     def connect_buttons(self):
         self.reset_bt.clicked.connect(self.reset)
+        self.save_bt.clicked.connect(self.save_scene)
 
         self.x_label_le.editingFinished.connect(self.update_plot)
         self.y_label_le.editingFinished.connect(self.update_plot)
@@ -86,9 +90,6 @@ class PlotEditor(Ui_PlotEditor):
         self.legend_fat_pb.setCheckable(True)
         self.legend_kursive_pb.setCheckable(True)
 
-    def get_default_values(self):
-        pass
-
     def reset(self):
         self.title_fat_pb.setChecked(False)
         self.legend_fat_pb.setChecked(False)
@@ -124,6 +125,27 @@ class PlotEditor(Ui_PlotEditor):
 
         self.assign_parameters()
         self.update_plot()
+
+    def save_scene(self):
+        # save_plot_window = Window()
+        # self.save_file = SavePlot(save_plot_window, self.PlotView)
+        # save_plot_window.show()
+
+        filename = QtGui.QFileDialog.getSaveFileName(None, 'Target Directory', QDir.homePath(), "*.png;;*.pgf")
+
+        # Get the size of your graphicsview
+        rect = self.PlotView.viewport().rect()
+        width, height = rect.size().width(), rect.size().height()
+        pixmap = QPixmap(width, height)
+        painter = QPainter(pixmap)
+        targetrect = QRectF(0, 0, width, height)
+        sourcerect = QRect(0, 0, width, height)
+        # Render the graphicsview onto the pixmap and save it out.
+        self.PlotView.render(painter, targetrect, sourcerect)
+        path = os.path.abspath(filename[0])
+
+        # TODO: this command causes the program to close due to jumping in main method / why?
+        pixmap.save(path)
 
     def assign_parameters(self):
         # x- and y-labeling
@@ -224,12 +246,6 @@ class PlotEditor(Ui_PlotEditor):
         dialog_width = width if (width > 880) else 880
         self.PlotEditor.resize(dialog_width, self.PlotEditor.geometry().height())
 
-        # min 550 - 880
-
-    def ptToPx(self, pt, dpi):
-        return pt * 4 / 3  # 72 * dpi
-        # 16 pixels == 12 font points
-
 
 class Plotter(Ui_Dialog):
     def __init__(self, Dialog):
@@ -277,16 +293,16 @@ def main():
     app = QtWidgets.QApplication(sys.argv)
 
     plt.ion()
-    Dialog = Window()
-    prog = Plotter(Dialog)
-    Dialog.show()
+    # Dialog = Window()
+    # prog = Plotter(Dialog)
+    # Dialog.show()
 
-    # plot_data = plt.plot
-    # path = os.path.abspath('C:/Users/Christopher/OneDrive/Studium/Hiwi/GUI/Plot/PlotPrototype/examples/a.plot')
-    # plot_data = readWrite.read_plot_data(path)
-    # plot_editor_window = Window()
-    # plot_editor = PlotEditor(plot_editor_window, plot_data)
-    # plot_editor_window.show()
+    plot_data = plt.plot
+    path = os.path.abspath('C:/Users/Christopher/OneDrive/Studium/Hiwi/GUI/Plot/PlotPrototype/examples/a.plot')
+    plot_data = readWrite.read_plot_data(path)
+    plot_editor_window = Window()
+    plot_editor = PlotEditor(plot_editor_window, plot_data)
+    plot_editor_window.show()
 
     sys.exit(app.exec_())
 
