@@ -6,7 +6,7 @@ import seaborn as sns
 import os
 import sys
 
-from PyQt5.QtGui import QPixmap, QPainter
+from PyQt5.QtGui import QPixmap, QPainter, QFontDatabase
 from PyQt5.QtCore import QRectF, QRect, QDir
 
 import readWrite
@@ -34,6 +34,7 @@ class PlotEditor(Ui_PlotEditor):
         self.PlotEditor = PlotEditor
         Ui_PlotEditor.__init__(self)
         self.setupUi(self.PlotEditor)
+        # self.init_font_cbs()
         self.plot_data = plot_data
 
         self.counter = 0
@@ -61,8 +62,9 @@ class PlotEditor(Ui_PlotEditor):
         self.facecolor_cb.currentIndexChanged.connect(self.update_plot)
         self.background_color_cb.currentIndexChanged.connect(self.update_plot)
         self.edgecolor_cb.currentIndexChanged.connect(self.update_plot)
-        self.edge_linewidth_cb.currentIndexChanged.connect(self.update_plot)
+        self.edge_linewidth_sb.valueChanged.connect(self.update_plot)
         self.figure_size_slider.sliderReleased.connect(self.update_plot)
+        self.figure_size_slider.valueChanged.connect(self.update_plot)
 
         self.label_le.editingFinished.connect(self.update_plot)
         self.legend_font_sb.currentFontChanged.connect(self.update_plot)
@@ -90,6 +92,11 @@ class PlotEditor(Ui_PlotEditor):
         self.legend_fat_pb.setCheckable(True)
         self.legend_kursive_pb.setCheckable(True)
 
+    def init_font_cbs(self):
+        self.xy_font_cb.setWritingSystem(3)
+        self.legend_font_sb.setWritingSystem(2)
+        self.title_font_cb.setWritingSystem(2)
+
     def reset(self):
         self.title_fat_pb.setChecked(False)
         self.legend_fat_pb.setChecked(False)
@@ -107,7 +114,7 @@ class PlotEditor(Ui_PlotEditor):
         self.legend_font_size_sb.setCurrentIndex(0)
         self.xy_font_size_cb.setCurrentIndex(0)
         self.linewidth_cb.setCurrentIndex(0)
-        self.edge_linewidth_cb.setCurrentIndex(0)
+        self.edge_linewidth_sb.setValue(0)
         self.title_pad_sb.setValue(0)
         self.labelpad_sb.setValue(0)
 
@@ -172,7 +179,7 @@ class PlotEditor(Ui_PlotEditor):
         self.facecolor = self.facecolor_cb.currentText()
         self.edgecolor = self.edgecolor_cb.currentText()
         self.background_color = self.background_color_cb.currentText()
-        self.edge_linewidth = float(self.edge_linewidth_cb.currentText())
+        self.edge_linewidth = float(self.edge_linewidth_sb.value())
 
         # line parameters
         self.linestyle = linestyles[self.linestyle_cb.currentIndex()]
@@ -291,18 +298,19 @@ class Window(QtWidgets.QMainWindow):
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
-
+    print(mpl.font_manager.get_cachedir())
     plt.ion()
-    # Dialog = Window()
-    # prog = Plotter(Dialog)
-    # Dialog.show()
 
-    plot_data = plt.plot
-    path = os.path.abspath('C:/Users/Christopher/OneDrive/Studium/Hiwi/GUI/Plot/PlotPrototype/examples/a.plot')
-    plot_data = readWrite.read_plot_data(path)
-    plot_editor_window = Window()
-    plot_editor = PlotEditor(plot_editor_window, plot_data)
-    plot_editor_window.show()
+    Dialog = Window()
+    prog = Plotter(Dialog)
+    Dialog.show()
+
+    # plot_data = plt.plot
+    #path = os.path.abspath('C:/Users/Christopher/OneDrive/Studium/Hiwi/GUI/Plot/PlotPrototype/examples/a.plot')
+    #plot_data = readWrite.read_plot_data(path)
+    #plot_editor_window = Window()
+    #plot_editor = PlotEditor(plot_editor_window, plot_data)
+    #plot_editor_window.show()
 
     sys.exit(app.exec_())
 
