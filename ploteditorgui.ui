@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1298</width>
-    <height>1261</height>
+    <width>901</width>
+    <height>1228</height>
    </rect>
   </property>
   <property name="minimumSize">
@@ -355,6 +355,9 @@
         <property name="editable">
          <bool>false</bool>
         </property>
+        <property name="currentText">
+         <string>Calibri</string>
+        </property>
         <property name="insertPolicy">
          <enum>QComboBox::NoInsert</enum>
         </property>
@@ -363,7 +366,7 @@
         </property>
         <property name="currentFont">
          <font>
-          <family>Arial</family>
+          <family>Calibri</family>
          </font>
         </property>
        </widget>
@@ -1327,6 +1330,12 @@
       </item>
       <item row="10" column="0">
        <widget class="QComboBox" name="title_color_cb">
+        <property name="minimumSize">
+         <size>
+          <width>170</width>
+          <height>0</height>
+         </size>
+        </property>
         <property name="maximumSize">
          <size>
           <width>114</width>
@@ -1865,6 +1874,12 @@
        <widget class="QComboBox" name="linewidth_cb">
         <property name="enabled">
          <bool>true</bool>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>80</width>
+          <height>0</height>
+         </size>
         </property>
         <property name="maximumSize">
          <size>

@@ -120,8 +120,8 @@ class PlotEditor(Ui_PlotEditor):
 
         self.xy_color_cb.setCurrentIndex(0)
         self.line_color_cb.setCurrentIndex(0)
-        self.facecolor_cb.setCurrentIndex(1)
-        self.background_color_cb.setCurrentIndex(1)
+        self.facecolor_cb.setCurrentIndex(0)
+        self.background_color_cb.setCurrentIndex(0)
         self.edgecolor_cb.setCurrentIndex(1)
         self.legend_color_cb.setCurrentIndex(0)
         self.legend_facecolor_cb.setCurrentIndex(1)
@@ -206,6 +206,12 @@ class PlotEditor(Ui_PlotEditor):
             1]
         size_inches = (self.ref_fig_size[0] * self.figure_size_fac,
                        self.ref_fig_size[1] * self.figure_size_fac)
+
+        max_figure_size_fac = (self.ref_fig_size[1] + step_size * 9999) / self.ref_fig_size[
+            1]
+        self.max_size_inches = (self.ref_fig_size[0] * max_figure_size_fac,
+                                self.ref_fig_size[1] * max_figure_size_fac)
+
         self.fig = Figure(facecolor=self.facecolor, edgecolor=self.edgecolor,
                           linewidth=self.edge_linewidth, figsize=size_inches)
         self.counter += 1
@@ -244,14 +250,17 @@ class PlotEditor(Ui_PlotEditor):
         canvas = FigureCanvas(self.fig)
         scene.addWidget(canvas)
 
+        # resizing and fitting of GraphicsView and Scene
         self.PlotView.setFixedSize(canvas.get_width_height()[0] + 2, canvas.get_width_height()[1] + 2)
         self.PlotView.setSceneRect(0, 0, canvas.get_width_height()[0], canvas.get_width_height()[1])
         self.PlotView.fitInView(0, 0, canvas.get_width_height()[0], canvas.get_width_height()[1])
         self.PlotView.setScene(scene)
 
+        # resizing the Window
         width = self.PlotEditor.minimumWidth() + canvas.get_width_height()[0]
         dialog_width = width if (width > 880) else 880
-        self.PlotEditor.resize(dialog_width, self.PlotEditor.geometry().height())
+        window_size = dialog_width, self.PlotEditor.geometry().height()
+        self.PlotEditor.resize(window_size[0], window_size[1])
 
 
 class Plotter(Ui_Dialog):
@@ -298,7 +307,6 @@ class Window(QtWidgets.QMainWindow):
 
 def main():
     app = QtWidgets.QApplication(sys.argv)
-    print(mpl.font_manager.get_cachedir())
     plt.ion()
 
     Dialog = Window()
@@ -306,11 +314,11 @@ def main():
     Dialog.show()
 
     # plot_data = plt.plot
-    #path = os.path.abspath('C:/Users/Christopher/OneDrive/Studium/Hiwi/GUI/Plot/PlotPrototype/examples/a.plot')
-    #plot_data = readWrite.read_plot_data(path)
-    #plot_editor_window = Window()
-    #plot_editor = PlotEditor(plot_editor_window, plot_data)
-    #plot_editor_window.show()
+    # path = os.path.abspath('C:/Users/Christopher/OneDrive/Studium/Hiwi/GUI/Plot/PlotPrototype/examples/a.plot')
+    # plot_data = readWrite.read_plot_data(path)
+    # plot_editor_window = Window()
+    # plot_editor = PlotEditor(plot_editor_window, plot_data)
+    # plot_editor_window.show()
 
     sys.exit(app.exec_())
 
